@@ -586,7 +586,7 @@
     <hop>
       <from>check passenger</from>
       <to>trunc date</to>
-      <enabled>N</enabled>
+      <enabled>Y</enabled>
     </hop>
     <hop>
       <from>trunc date</from>
