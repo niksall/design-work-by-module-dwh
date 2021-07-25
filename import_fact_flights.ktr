@@ -586,7 +586,7 @@
     <hop>
       <from>check passenger</from>
       <to>trunc date</to>
-      <enabled>Y</enabled>
+      <enabled>N</enabled>
     </hop>
     <hop>
       <from>trunc date</from>
@@ -1067,15 +1067,15 @@
     <fields>
       <field>
         <column_name>passenger</column_name>
-        <stream_name>passenger</stream_name>
+        <stream_name>id</stream_name>
       </field>
       <field>
         <column_name>departure_date</column_name>
-        <stream_name>actual_departure</stream_name>
+        <stream_name>act_arriv_datetime</stream_name>
       </field>
       <field>
         <column_name>arrival_date</column_name>
-        <stream_name>actual_arrival</stream_name>
+        <stream_name>act_dep_datetime</stream_name>
       </field>
       <field>
         <column_name>departure_delay</column_name>
@@ -1104,6 +1104,10 @@
       <field>
         <column_name>ticket_price</column_name>
         <stream_name>amount</stream_name>
+      </field>
+      <field>
+        <column_name>memo</column_name>
+        <stream_name>memo</stream_name>
       </field>
     </fields>
     <attributes/>
