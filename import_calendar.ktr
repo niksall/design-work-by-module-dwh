@@ -436,57 +436,6 @@
   <notepads>
   </notepads>
   <connection>
-    <name>connect_flights</name>
-    <server>localhost</server>
-    <type>POSTGRESQL</type>
-    <access>Native</access>
-    <database>flights</database>
-    <port>5433</port>
-    <username>root_fl</username>
-    <password>Encrypted 2be98afc86aa7f28a9439ff228dc5f783</password>
-    <servername/>
-    <data_tablespace/>
-    <index_tablespace/>
-    <attributes>
-      <attribute>
-        <code>FORCE_IDENTIFIERS_TO_LOWERCASE</code>
-        <attribute>N</attribute>
-      </attribute>
-      <attribute>
-        <code>FORCE_IDENTIFIERS_TO_UPPERCASE</code>
-        <attribute>N</attribute>
-      </attribute>
-      <attribute>
-        <code>IS_CLUSTERED</code>
-        <attribute>N</attribute>
-      </attribute>
-      <attribute>
-        <code>PORT_NUMBER</code>
-        <attribute>5433</attribute>
-      </attribute>
-      <attribute>
-        <code>PRESERVE_RESERVED_WORD_CASE</code>
-        <attribute>Y</attribute>
-      </attribute>
-      <attribute>
-        <code>QUOTE_ALL_FIELDS</code>
-        <attribute>N</attribute>
-      </attribute>
-      <attribute>
-        <code>SUPPORTS_BOOLEAN_DATA_TYPE</code>
-        <attribute>Y</attribute>
-      </attribute>
-      <attribute>
-        <code>SUPPORTS_TIMESTAMP_DATA_TYPE</code>
-        <attribute>Y</attribute>
-      </attribute>
-      <attribute>
-        <code>USE_POOLING</code>
-        <attribute>N</attribute>
-      </attribute>
-    </attributes>
-  </connection>
-  <connection>
     <name>connect_demo</name>
     <server>84.201.153.170</server>
     <type>POSTGRESQL</type>
@@ -590,61 +539,11 @@
   </connection>
   <order>
     <hop>
-      <from>Filter rows</from>
-      <to>Insert / update calendar</to>
-      <enabled>Y</enabled>
-    </hop>
-    <hop>
       <from>Input actual date</from>
-      <to>Select values</to>
-      <enabled>Y</enabled>
-    </hop>
-    <hop>
-      <from>Select values</from>
-      <to>Filter rows</to>
-      <enabled>Y</enabled>
-    </hop>
-    <hop>
-      <from>Filter rows</from>
-      <to>Insert / update rejected_calendar</to>
+      <to>Table output</to>
       <enabled>Y</enabled>
     </hop>
   </order>
-  <step>
-    <name>Filter rows</name>
-    <type>FilterRows</type>
-    <description/>
-    <distribute>Y</distribute>
-    <custom_distribution/>
-    <copies>1</copies>
-    <partitioning>
-      <method>none</method>
-      <schema_name/>
-    </partitioning>
-    <send_true_to>Insert / update calendar</send_true_to>
-    <send_false_to>Insert / update rejected_calendar</send_false_to>
-    <compare>
-      <condition>
-        <negated>N</negated>
-        <leftvalue>actual_date</leftvalue>
-        <function>IS NOT NULL</function>
-        <rightvalue/>
-      </condition>
-    </compare>
-    <attributes/>
-    <cluster_schema/>
-    <remotesteps>
-      <input>
-      </input>
-      <output>
-      </output>
-    </remotesteps>
-    <GUI>
-      <xloc>760</xloc>
-      <yloc>361</yloc>
-      <draw>Y</draw>
-    </GUI>
-  </step>
   <step>
     <name>Input actual date</name>
     <type>TableInput</type>
@@ -657,27 +556,16 @@
       <schema_name/>
     </partitioning>
     <connection>connect_demo</connection>
-    <sql>select flight_id::varchar(250) || row_num::varchar(250) as id_uniq
-     , flight_no
-     , actual_date
-from (
-			select row_number() over(partition by f.flight_id, f.flight_no order by actual_date) as row_num
-			     , flight_id
-			     , flight_no
-			     , actual_date
-			  from (
-						select flight_id
-						     , flight_no 
-						     , actual_arrival as actual_date
-						  from bookings.flights
-						union all
-						select flight_id 
-						     , flight_no
-						     , actual_departure
-						  from bookings.flights
-			      ) f
-     ) r
-  </sql>
+    <sql>with recursive date_tmp as (
+  select '2015-01-01'::date as actual_date
+  union all
+  select actual_date + 1 from date_tmp
+) select to_char(actual_date, 'YYYYMMDD')::int as date_key
+       , actual_date
+       , extract(year from actual_date) date_year
+       , extract(month from actual_date) date_month
+       , extract(day from actual_date) date_day
+    from date_tmp LIMIT 1000;</sql>
     <limit>0</limit>
     <lookup/>
     <execute_each_row>N</execute_each_row>
@@ -686,14 +574,14 @@ from (
     <cached_row_meta_active>N</cached_row_meta_active>
     <row-meta>
       <value-meta>
-        <type>String</type>
+        <type>Integer</type>
         <storagetype>normal</storagetype>
-        <name>id_uniq</name>
-        <length>2147483647</length>
-        <precision>-1</precision>
+        <name>date_key</name>
+        <length>9</length>
+        <precision>0</precision>
         <origin>Input actual date</origin>
-        <comments>id_uniq</comments>
-        <conversion_Mask/>
+        <comments>date_key</comments>
+        <conversion_Mask>####0;-####0</conversion_Mask>
         <decimal_symbol>,</decimal_symbol>
         <grouping_symbol> </grouping_symbol>
         <currency_symbol/>
@@ -709,37 +597,83 @@ from (
         <lenient_string_to_number>N</lenient_string_to_number>
       </value-meta>
       <value-meta>
-        <type>String</type>
-        <storagetype>normal</storagetype>
-        <name>flight_no</name>
-        <length>6</length>
-        <precision>-1</precision>
-        <origin>Input actual date</origin>
-        <comments>flight_no</comments>
-        <conversion_Mask/>
-        <decimal_symbol>,</decimal_symbol>
-        <grouping_symbol> </grouping_symbol>
-        <currency_symbol/>
-        <trim_type>none</trim_type>
-        <case_insensitive>N</case_insensitive>
-        <collator_disabled>Y</collator_disabled>
-        <collator_strength>0</collator_strength>
-        <sort_descending>N</sort_descending>
-        <output_padding>N</output_padding>
-        <date_format_lenient>N</date_format_lenient>
-        <date_format_locale>en_US</date_format_locale>
-        <date_format_timezone>Europe/Moscow</date_format_timezone>
-        <lenient_string_to_number>N</lenient_string_to_number>
-      </value-meta>
-      <value-meta>
-        <type>Timestamp</type>
+        <type>Date</type>
         <storagetype>normal</storagetype>
         <name>actual_date</name>
-        <length>6</length>
+        <length>-1</length>
         <precision>-1</precision>
         <origin>Input actual date</origin>
         <comments>actual_date</comments>
         <conversion_Mask/>
+        <decimal_symbol>,</decimal_symbol>
+        <grouping_symbol> </grouping_symbol>
+        <currency_symbol/>
+        <trim_type>none</trim_type>
+        <case_insensitive>N</case_insensitive>
+        <collator_disabled>Y</collator_disabled>
+        <collator_strength>0</collator_strength>
+        <sort_descending>N</sort_descending>
+        <output_padding>N</output_padding>
+        <date_format_lenient>N</date_format_lenient>
+        <date_format_locale>en_US</date_format_locale>
+        <date_format_timezone>Europe/Moscow</date_format_timezone>
+        <lenient_string_to_number>N</lenient_string_to_number>
+      </value-meta>
+      <value-meta>
+        <type>Number</type>
+        <storagetype>normal</storagetype>
+        <name>date_year</name>
+        <length>-1</length>
+        <precision>-1</precision>
+        <origin>Input actual date</origin>
+        <comments>date_year</comments>
+        <conversion_Mask>####0.0#########;-####0.0#########</conversion_Mask>
+        <decimal_symbol>,</decimal_symbol>
+        <grouping_symbol> </grouping_symbol>
+        <currency_symbol/>
+        <trim_type>none</trim_type>
+        <case_insensitive>N</case_insensitive>
+        <collator_disabled>Y</collator_disabled>
+        <collator_strength>0</collator_strength>
+        <sort_descending>N</sort_descending>
+        <output_padding>N</output_padding>
+        <date_format_lenient>N</date_format_lenient>
+        <date_format_locale>en_US</date_format_locale>
+        <date_format_timezone>Europe/Moscow</date_format_timezone>
+        <lenient_string_to_number>N</lenient_string_to_number>
+      </value-meta>
+      <value-meta>
+        <type>Number</type>
+        <storagetype>normal</storagetype>
+        <name>date_month</name>
+        <length>-1</length>
+        <precision>-1</precision>
+        <origin>Input actual date</origin>
+        <comments>date_month</comments>
+        <conversion_Mask>####0.0#########;-####0.0#########</conversion_Mask>
+        <decimal_symbol>,</decimal_symbol>
+        <grouping_symbol> </grouping_symbol>
+        <currency_symbol/>
+        <trim_type>none</trim_type>
+        <case_insensitive>N</case_insensitive>
+        <collator_disabled>Y</collator_disabled>
+        <collator_strength>0</collator_strength>
+        <sort_descending>N</sort_descending>
+        <output_padding>N</output_padding>
+        <date_format_lenient>N</date_format_lenient>
+        <date_format_locale>en_US</date_format_locale>
+        <date_format_timezone>Europe/Moscow</date_format_timezone>
+        <lenient_string_to_number>N</lenient_string_to_number>
+      </value-meta>
+      <value-meta>
+        <type>Number</type>
+        <storagetype>normal</storagetype>
+        <name>date_day</name>
+        <length>-1</length>
+        <precision>-1</precision>
+        <origin>Input actual date</origin>
+        <comments>date_day</comments>
+        <conversion_Mask>####0.0#########;-####0.0#########</conversion_Mask>
         <decimal_symbol>,</decimal_symbol>
         <grouping_symbol> </grouping_symbol>
         <currency_symbol/>
@@ -764,14 +698,14 @@ from (
       </output>
     </remotesteps>
     <GUI>
-      <xloc>513</xloc>
-      <yloc>551</yloc>
+      <xloc>551</xloc>
+      <yloc>513</yloc>
       <draw>Y</draw>
     </GUI>
   </step>
   <step>
-    <name>Insert / update calendar</name>
-    <type>InsertUpdate</type>
+    <name>Table output</name>
+    <type>TableOutput</type>
     <description/>
     <distribute>Y</distribute>
     <custom_distribution/>
@@ -781,139 +715,43 @@ from (
       <schema_name/>
     </partitioning>
     <connection>connect_flights</connection>
-    <commit>100</commit>
-    <update_bypassed>N</update_bypassed>
-    <lookup>
-      <schema>public</schema>
-      <table>dim_calendar</table>
-      <key>
-        <name>id_uniq</name>
-        <field>id</field>
-        <condition>=</condition>
-        <name2/>
-      </key>
-      <value>
-        <name>id</name>
-        <rename>id_uniq</rename>
-        <update>N</update>
-      </value>
-      <value>
-        <name>flight_no</name>
-        <rename>flight_no</rename>
-        <update>Y</update>
-      </value>
-      <value>
-        <name>actual_date</name>
-        <rename>actual_date</rename>
-        <update>Y</update>
-      </value>
-    </lookup>
-    <attributes/>
-    <cluster_schema/>
-    <remotesteps>
-      <input>
-      </input>
-      <output>
-      </output>
-    </remotesteps>
-    <GUI>
-      <xloc>760</xloc>
-      <yloc>209</yloc>
-      <draw>Y</draw>
-    </GUI>
-  </step>
-  <step>
-    <name>Insert / update rejected_calendar</name>
-    <type>InsertUpdate</type>
-    <description/>
-    <distribute>Y</distribute>
-    <custom_distribution/>
-    <copies>1</copies>
-    <partitioning>
-      <method>none</method>
-      <schema_name/>
-    </partitioning>
-    <connection>connect_flights</connection>
-    <commit>100</commit>
-    <update_bypassed>N</update_bypassed>
-    <lookup>
-      <schema>public</schema>
-      <table>rejected_dim_calendar</table>
-      <key>
-        <name>id_uniq</name>
-        <field>id</field>
-        <condition>=</condition>
-        <name2/>
-      </key>
-      <value>
-        <name>id</name>
-        <rename>id_uniq</rename>
-        <update>N</update>
-      </value>
-      <value>
-        <name>flight_no</name>
-        <rename>flight_no</rename>
-        <update>Y</update>
-      </value>
-      <value>
-        <name>actual_date</name>
-        <rename>actual_date</rename>
-        <update>Y</update>
-      </value>
-    </lookup>
-    <attributes/>
-    <cluster_schema/>
-    <remotesteps>
-      <input>
-      </input>
-      <output>
-      </output>
-    </remotesteps>
-    <GUI>
-      <xloc>950</xloc>
-      <yloc>361</yloc>
-      <draw>Y</draw>
-    </GUI>
-  </step>
-  <step>
-    <name>Select values</name>
-    <type>SelectValues</type>
-    <description/>
-    <distribute>Y</distribute>
-    <custom_distribution/>
-    <copies>1</copies>
-    <partitioning>
-      <method>none</method>
-      <schema_name/>
-    </partitioning>
+    <schema>public</schema>
+    <table>dim_calendar</table>
+    <commit>1000</commit>
+    <truncate>Y</truncate>
+    <ignore_errors>N</ignore_errors>
+    <use_batch>Y</use_batch>
+    <specify_fields>Y</specify_fields>
+    <partitioning_enabled>N</partitioning_enabled>
+    <partitioning_field/>
+    <partitioning_daily>N</partitioning_daily>
+    <partitioning_monthly>Y</partitioning_monthly>
+    <tablename_in_field>N</tablename_in_field>
+    <tablename_field/>
+    <tablename_in_table>Y</tablename_in_table>
+    <return_keys>N</return_keys>
+    <return_field/>
     <fields>
       <field>
-        <name>id_uniq</name>
+        <column_name>id</column_name>
+        <stream_name>date_key</stream_name>
       </field>
       <field>
-        <name>flight_no</name>
+        <column_name>actual_date</column_name>
+        <stream_name>actual_date</stream_name>
       </field>
       <field>
-        <name>actual_date</name>
+        <column_name>date_year</column_name>
+        <stream_name>date_year</stream_name>
       </field>
-      <select_unspecified>N</select_unspecified>
-      <meta>
-        <name>id_uniq</name>
-        <rename>id_uniq</rename>
-        <type>BigNumber</type>
-        <length>-2</length>
-        <precision>-2</precision>
-        <conversion_mask/>
-        <date_format_lenient>false</date_format_lenient>
-        <date_format_locale/>
-        <date_format_timezone/>
-        <lenient_string_to_number>false</lenient_string_to_number>
-        <encoding/>
-        <decimal_symbol/>
-        <grouping_symbol/>
-        <currency_symbol/>
-        <storage_type/>
-      </meta>
+      <field>
+        <column_name>date_month</column_name>
+        <stream_name>date_month</stream_name>
+      </field>
+      <field>
+        <column_name>date_day</column_name>
+        <stream_name>date_day</stream_name>
+      </field>
     </fields>
     <attributes/>
     <cluster_schema/>
@@ -924,8 +762,8 @@ from (
       </output>
     </remotesteps>
     <GUI>
-      <xloc>646</xloc>
-      <yloc>456</yloc>
+      <xloc>836</xloc>
+      <yloc>513</yloc>
       <draw>Y</draw>
     </GUI>
   </step>
